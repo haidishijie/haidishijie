@@ -68,7 +68,9 @@ export function formatEnergy(kwh: number | string | null | undefined): string {
  */
 export function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '---';
-  const d = new Date(dateStr);
+  // TeslaMate stores dates in UTC without timezone marker.
+  // Treat as UTC by appending 'Z' then convert to local time.
+  const d = new Date(dateStr.endsWith('Z') ? dateStr : dateStr + 'Z');
   return d.toLocaleString('zh-CN', {
     month: '2-digit',
     day: '2-digit',
