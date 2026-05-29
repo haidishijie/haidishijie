@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useTeslaMateData } from '../hooks/useTeslaMateData';
 import Header from '../components/Header';
 import VehicleStatus from '../components/VehicleStatus';
@@ -11,15 +11,6 @@ import RecentActivity from '../components/RecentActivity';
 import WeeklyMileage from '../components/WeeklyMileage';
 import EfficiencyAnalysis from '../components/EfficiencyAnalysis';
 import FrequentLocations from '../components/FrequentLocations';
-
-function SectionHeader({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-3 mb-4 mt-2">
-      <h2 className="text-[11px] font-semibold tracking-[0.06em] uppercase text-white/20">{label}</h2>
-      <div className="flex-1 h-px bg-gradient-to-r from-tm-border to-transparent" />
-    </div>
-  );
-}
 
 function Panel({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
@@ -62,6 +53,22 @@ const Dashboard: React.FC = () => {
     { label: '最高速度', value: summary?.drives?.max_speed && Number(summary.drives.max_speed) > 0 ? `${Number(summary.drives.max_speed)}` : '—', sub: 'km/h', color: summary?.drives?.max_speed && Number(summary.drives.max_speed) > 0 ? 'text-tm-red' : 'text-white/30' },
   ];
 
+  // Proportional scaling based on viewport width (reference: 1920px)
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const updateScale = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const scaleX = w / 1920;
+      const scaleY = h / 1080;
+      setScale(Math.min(scaleX, scaleY, 1.5));
+    };
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col bg-tm-bg">
       <div className="scanline-overlay" />
@@ -76,89 +83,77 @@ const Dashboard: React.FC = () => {
         onRefresh={refresh}
       />
 
-      <main className="flex-1 w-full px-4 pb-8 relative z-10">
+      <main className="flex-1 w-full relative z-10 overflow-hidden flex items-center justify-center">
+        <div
+          ref={contentRef}
+          style={{
+            transform: `scale(${scale})`,
+            transformOrigin: 'center center',
+            width: '1920px',
+            height: '1080px',
+            overflow: 'hidden',
+          }}
+          className="flex flex-col px-4 pb-3"
+        >
         {/* Error banner */}
         {error && (
-          <Panel className="border-tm-red/50 bg-tm-red/5 mb-5">
-            <div className="px-4 py-3 flex items-center gap-3">
-              <span className="status-dot status-offline" />
-              <div>
-                <span className="text-xs text-tm-red font-bold">连接错误</span>
-                <p className="text-xs text-tm-text-dim mt-0.5">{error}</p>
-              </div>
-            </div>
-          </Panel>
+          <div className="px-3 py-2 mb-2 flex items-center gap-3 border border-tm-red/50 bg-tm-red/5 rounded text-xs text-tm-red">
+            <span className="status-dot status-offline" />
+            <span className="font-bold">连接错误:</span> {error}
+          </div>
         )}
 
-        {/* Full-width horizontal sections */}
-        <div className="flex gap-5 overflow-x-auto pb-4 min-h-[600px]">
-          {/* 概览 */}
-          <div className="flex flex-col gap-4 shrink-0" style={{ minWidth: '22vw', maxWidth: '24vw' }}>
-            <SectionHeader label="概览" />
-            <div className="panel">
+        {/* Landscape A4: modules arranged in 3 rows, ~4 per row */}
+        <div className="flex flex-col gap-2 h-full">
+          {/* Row 1: 车辆状态 + 能耗效率 + 最近活动 + 充电分析 */}
+          <div className="grid grid-cols-4 gap-2 overflow-hidden min-h-0 flex-1">
+            <div className="panel overflow-hidden flex flex-col min-h-0">
               <PanelHead icon="◆" title="车辆状态" />
-              <div className="p-4"><VehicleStatus car={car} /></div>
+              <div className="p-2 flex-1 overflow-y-auto min-h-0"><VehicleStatus car={car} /></div>
             </div>
-            <div className="panel">
+            <EfficiencyAnalysis efficiency={efficiency} />
+            <RecentActivity drives={drives} charges={charges} />
+            <ChargingAnalysis charges={charges} />
+          </div>
+
+          {/* Row 2: KPI概览 + 本周里程 + 里程趋势 + 月度对比 */}
+          <div className="grid grid-cols-4 gap-2 overflow-hidden min-h-0 flex-1">
+            <div className="panel overflow-hidden flex flex-col min-h-0">
               <PanelHead icon="◆" title="KPI 概览" />
-              <div className="p-4">
-                <div className="grid grid-cols-3 gap-2">
+              <div className="p-2 flex-1 overflow-y-auto min-h-0">
+                <div className="grid grid-cols-3 gap-1 items-center h-full">
                   {kpiCards.map((kpi) => (
-                    <div key={kpi.label} className="text-center px-1 py-2.5 rounded-md bg-white/[0.02] border border-tm-border/30">
-                      <div className="text-[9px] uppercase tracking-[0.06em] text-white/25 mb-1">{kpi.label}</div>
-                      <div className={`font-mono text-lg font-semibold leading-tight ${kpi.color}`}>{kpi.value}</div>
-                      <div className="text-[9px] text-white/15 mt-0.5">{kpi.sub}</div>
+                    <div key={kpi.label} className="text-center rounded-md bg-white/[0.02] border border-tm-border/30 py-1">
+                      <div className="text-[8px] uppercase tracking-wider text-white/25 mb-0.5">{kpi.label}</div>
+                      <div className={`font-mono text-xs font-semibold leading-tight ${kpi.color}`}>{kpi.value}</div>
+                      <div className="text-[8px] text-white/15 mt-0.5">{kpi.sub}</div>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
             <WeeklyMileage weekly={weekly} />
-          </div>
-
-          {/* 动态 */}
-          <div className="flex flex-col gap-4 shrink-0" style={{ minWidth: '28vw', maxWidth: '30vw' }}>
-            <SectionHeader label="动态" />
-            <div className="flex-1"><RecentActivity drives={drives} charges={charges} /></div>
-            <div className="panel">
+            <div className="panel overflow-hidden flex flex-col min-h-0">
               <PanelHead icon="◆" title="里程趋势" />
-              <div className="p-4"><MileageTrend mileage={mileage} /></div>
+              <div className="p-2 flex-1 min-h-0"><MileageTrend mileage={mileage} /></div>
             </div>
-          </div>
-
-          {/* 分析 */}
-          <div className="flex flex-col gap-4 shrink-0" style={{ minWidth: '22vw', maxWidth: '24vw' }}>
-            <SectionHeader label="分析" />
             <MonthlyComparison monthly={monthly} />
-            <EfficiencyAnalysis efficiency={efficiency} />
           </div>
 
-          {/* 数据透视 */}
-          <div className="flex flex-col gap-4 shrink-0" style={{ minWidth: '22vw', maxWidth: '24vw' }}>
-            <SectionHeader label="数据透视" />
+          {/* Row 3: 驾驶习惯 + 充电统计 + 常用地点 */}
+          <div className="grid grid-cols-3 gap-2 overflow-hidden min-h-0 flex-1">
             <DrivingHabits drives={drives} />
-            <ChargingAnalysis charges={charges} />
             <ChargingStats charges={charges} />
             <FrequentLocations locations={locations} />
           </div>
         </div>
 
-        {/* Footer */}
-        <footer className="flex items-center justify-between pt-4 mt-4 border-t border-tm-border/40 text-[11px] text-white/15">
-          <div className="flex items-center gap-3">
-            <span>TeslaMate 控制中心 v2.0</span>
-            <span className="opacity-30">|</span>
-            <span>横版布局</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span>刷新间隔: 30s</span>
-            <span className="opacity-30">|</span>
-            <span className="flex items-center gap-1">
-              <span className="w-1 h-1 rounded-full bg-tm-green inline-block shadow-[0_0_4px_rgba(0,255,65,0.3)]" />
-              系统正常
-            </span>
-          </div>
-        </footer>
+        {/* Footer inline */}
+        <div className="flex items-center justify-between pt-2 text-[10px] text-white/15">
+          <span>TeslaMate 控制中心 v2.0 | 横版全览</span>
+          <span>刷新间隔: 30s | <span className="text-tm-green">●</span> 系统正常</span>
+        </div>
+      </div>
       </main>
     </div>
   );
