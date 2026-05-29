@@ -76,7 +76,7 @@ const Dashboard: React.FC = () => {
         onRefresh={refresh}
       />
 
-      <main className="flex-1 w-full max-w-[1440px] mx-auto px-6 pb-8 relative z-10">
+      <main className="flex-1 w-full max-w-[1920px] mx-auto px-6 pb-8 relative z-10">
         {/* Error banner */}
         {error && (
           <Panel className="border-tm-red/50 bg-tm-red/5 mb-5">
@@ -90,66 +90,66 @@ const Dashboard: React.FC = () => {
           </Panel>
         )}
 
-        {/* == Section: 概览 == */}
-        <SectionHeader label="概览" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-6">
-          {/* 车辆状态 */}
-          <div className="panel">
-            <PanelHead icon="◆" title="车辆状态" />
-            <div className="p-4">
-              <VehicleStatus car={car} />
-            </div>
-          </div>
-
-          {/* KPI 概览 */}
-          <div className="panel">
-            <PanelHead icon="◆" title="KPI 概览" />
-            <div className="p-4">
-              <div className="grid grid-cols-3 gap-2">
-                {kpiCards.map((kpi) => (
-                  <div key={kpi.label} className="text-center px-1 py-2.5 rounded-md bg-white/[0.02] border border-tm-border/30">
-                    <div className="text-[9px] uppercase tracking-[0.06em] text-white/25 mb-1">{kpi.label}</div>
-                    <div className={`font-mono text-lg font-semibold leading-tight ${kpi.color}`}>{kpi.value}</div>
-                    <div className="text-[9px] text-white/15 mt-0.5">{kpi.sub}</div>
-                  </div>
-                ))}
+        {/* Horizontal layout: 4 sections side by side */}
+        <div className="flex gap-4 overflow-x-auto pb-4 min-h-[600px]">
+          {/* Section: 概览 */}
+          <div className="flex flex-col gap-3 min-w-[420px] max-w-[420px] shrink-0">
+            <SectionHeader label="概览" />
+            <div className="panel">
+              <PanelHead icon="◆" title="车辆状态" />
+              <div className="p-4">
+                <VehicleStatus car={car} />
               </div>
             </div>
+            <div className="panel">
+              <PanelHead icon="◆" title="KPI 概览" />
+              <div className="p-4">
+                <div className="grid grid-cols-3 gap-2">
+                  {kpiCards.map((kpi) => (
+                    <div key={kpi.label} className="text-center px-1 py-2.5 rounded-md bg-white/[0.02] border border-tm-border/30">
+                      <div className="text-[9px] uppercase tracking-[0.06em] text-white/25 mb-1">{kpi.label}</div>
+                      <div className={`font-mono text-lg font-semibold leading-tight ${kpi.color}`}>{kpi.value}</div>
+                      <div className="text-[9px] text-white/15 mt-0.5">{kpi.sub}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <WeeklyMileage weekly={weekly} />
           </div>
 
-          {/* 本周里程 */}
-          <WeeklyMileage weekly={weekly} />
-        </div>
+          {/* Section: 动态 */}
+          <div className="flex flex-col gap-3 min-w-[540px] max-w-[540px] shrink-0">
+            <SectionHeader label="动态" />
+            <div className="flex-1">
+              <RecentActivity drives={drives} charges={charges} />
+            </div>
+            <MileageTrend mileage={mileage} />
+          </div>
 
-        {/* == Section: 动态 == */}
-        <SectionHeader label="动态" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
-          <RecentActivity drives={drives} charges={charges} />
-          <MileageTrend mileage={mileage} />
-        </div>
+          {/* Section: 分析 */}
+          <div className="flex flex-col gap-3 min-w-[420px] max-w-[420px] shrink-0">
+            <SectionHeader label="分析" />
+            <MonthlyComparison monthly={monthly} />
+            <EfficiencyAnalysis efficiency={efficiency} />
+          </div>
 
-        {/* == Section: 分析 == */}
-        <SectionHeader label="分析" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
-          <MonthlyComparison monthly={monthly} />
-          <EfficiencyAnalysis efficiency={efficiency} />
-        </div>
-
-        {/* == Section: 数据透视 == */}
-        <SectionHeader label="数据透视" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          <DrivingHabits drives={drives} />
-          <ChargingAnalysis charges={charges} />
-          <ChargingStats charges={charges} />
-          <FrequentLocations locations={locations} />
+          {/* Section: 数据透视 */}
+          <div className="flex flex-col gap-3 min-w-[420px] max-w-[420px] shrink-0">
+            <SectionHeader label="数据透视" />
+            <DrivingHabits drives={drives} />
+            <ChargingAnalysis charges={charges} />
+            <ChargingStats charges={charges} />
+            <FrequentLocations locations={locations} />
+          </div>
         </div>
 
         {/* Footer */}
-        <footer className="flex items-center justify-between pt-4 mt-8 border-t border-tm-border/40 text-[11px] text-white/15">
+        <footer className="flex items-center justify-between pt-4 mt-4 border-t border-tm-border/40 text-[11px] text-white/15">
           <div className="flex items-center gap-3">
             <span>TeslaMate 控制中心 v2.0</span>
             <span className="opacity-30">|</span>
-            <span>分区布局</span>
+            <span>横版布局</span>
           </div>
           <div className="flex items-center gap-3">
             <span>刷新间隔: 30s</span>
