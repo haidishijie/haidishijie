@@ -76,7 +76,7 @@ const Dashboard: React.FC = () => {
         onRefresh={refresh}
       />
 
-      <main className="flex-1 w-full max-w-[1920px] mx-auto px-6 pb-8 relative z-10">
+      <main className="flex-1 w-full px-4 pb-8 relative z-10">
         {/* Error banner */}
         {error && (
           <Panel className="border-tm-red/50 bg-tm-red/5 mb-5">
@@ -90,16 +90,14 @@ const Dashboard: React.FC = () => {
           </Panel>
         )}
 
-        {/* Horizontal layout: 4 sections side by side */}
-        <div className="flex gap-4 overflow-x-auto pb-4 min-h-[600px]">
-          {/* Section: 概览 */}
-          <div className="flex flex-col gap-3 min-w-[420px] max-w-[420px] shrink-0">
+        {/* Full-width horizontal sections */}
+        <div className="flex gap-5 overflow-x-auto pb-4 min-h-[600px]">
+          {/* 概览 */}
+          <div className="flex flex-col gap-4 shrink-0" style={{ minWidth: '22vw', maxWidth: '24vw' }}>
             <SectionHeader label="概览" />
             <div className="panel">
               <PanelHead icon="◆" title="车辆状态" />
-              <div className="p-4">
-                <VehicleStatus car={car} />
-              </div>
+              <div className="p-4"><VehicleStatus car={car} /></div>
             </div>
             <div className="panel">
               <PanelHead icon="◆" title="KPI 概览" />
@@ -118,24 +116,25 @@ const Dashboard: React.FC = () => {
             <WeeklyMileage weekly={weekly} />
           </div>
 
-          {/* Section: 动态 */}
-          <div className="flex flex-col gap-3 min-w-[540px] max-w-[540px] shrink-0">
+          {/* 动态 */}
+          <div className="flex flex-col gap-4 shrink-0" style={{ minWidth: '28vw', maxWidth: '30vw' }}>
             <SectionHeader label="动态" />
-            <div className="flex-1">
-              <RecentActivity drives={drives} charges={charges} />
+            <div className="flex-1"><RecentActivity drives={drives} charges={charges} /></div>
+            <div className="panel">
+              <PanelHead icon="◆" title="里程趋势" />
+              <div className="p-4"><MileageTrend mileage={mileage} /></div>
             </div>
-            <MileageTrend mileage={mileage} />
           </div>
 
-          {/* Section: 分析 */}
-          <div className="flex flex-col gap-3 min-w-[420px] max-w-[420px] shrink-0">
+          {/* 分析 */}
+          <div className="flex flex-col gap-4 shrink-0" style={{ minWidth: '22vw', maxWidth: '24vw' }}>
             <SectionHeader label="分析" />
             <MonthlyComparison monthly={monthly} />
             <EfficiencyAnalysis efficiency={efficiency} />
           </div>
 
-          {/* Section: 数据透视 */}
-          <div className="flex flex-col gap-3 min-w-[420px] max-w-[420px] shrink-0">
+          {/* 数据透视 */}
+          <div className="flex flex-col gap-4 shrink-0" style={{ minWidth: '22vw', maxWidth: '24vw' }}>
             <SectionHeader label="数据透视" />
             <DrivingHabits drives={drives} />
             <ChargingAnalysis charges={charges} />
