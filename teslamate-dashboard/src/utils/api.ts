@@ -3,13 +3,22 @@ export type { Car, Drive, Charge, Position };
 
 const API_BASE = '/api';
 
+/** Convert PostgreSQL numeric strings to numbers in JSON */
+function convertNumericStrings(_key: string, value: unknown): unknown {
+  if (typeof value === 'string' && /^-?\d+\.?\d*$/.test(value.trim()) && !isNaN(Number(value))) {
+    return Number(value);
+  }
+  return value;
+}
+
 /** Generic fetch helper with error handling */
 async function fetchJSON<T>(url: string): Promise<T> {
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`API request failed: ${response.status} ${response.statusText}`);
   }
-  return response.json() as Promise<T>;
+  const text = await response.text();
+  return JSON.parse(text, convertNumericStrings) as Promise<T>;
 }
 
 // ─── Car ──────────────────────────────────────────────────────────

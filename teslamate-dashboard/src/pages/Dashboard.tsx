@@ -1,5 +1,4 @@
-import React, { useState, useCallback } from 'react';
-import { ResponsiveGridLayout } from 'react-grid-layout';
+import React from 'react';
 import { useTeslaMateData } from '../hooks/useTeslaMateData';
 import Header from '../components/Header';
 import VehicleStatus from '../components/VehicleStatus';
@@ -12,50 +11,36 @@ import RecentActivity from '../components/RecentActivity';
 import WeeklyMileage from '../components/WeeklyMileage';
 import EfficiencyAnalysis from '../components/EfficiencyAnalysis';
 import FrequentLocations from '../components/FrequentLocations';
-import 'react-grid-layout/css/styles.css';
 
-const LAYOUT_KEY = 'teslamate-dashboard-layout-v1';
-const LOCK_KEY = 'teslamate-dashboard-locked-v1';
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 mb-4 mt-2">
+      <h2 className="text-[11px] font-semibold tracking-[0.06em] uppercase text-white/20">{label}</h2>
+      <div className="flex-1 h-px bg-gradient-to-r from-tm-border to-transparent" />
+    </div>
+  );
+}
 
-// Default layout: 12-column grid, each module has a key and position
-const DEFAULT_ITEMS = [
-  { i: 'vehicle-status', label: '车辆状态', minW: 6, minH: 4, w: 12, h: 5 },
-  { i: 'kpi-summary', label: 'KPI 概览', minW: 6, minH: 2, w: 12, h: 2 },
-  { i: 'weekly-mileage', label: '本周里程', minW: 4, minH: 3, w: 6, h: 4 },
-  { i: 'recent-activity', label: '最近活动', minW: 4, minH: 3, w: 6, h: 4 },
-  { i: 'mileage-trend', label: '里程趋势', minW: 4, minH: 3, w: 6, h: 4 },
-  { i: 'monthly-comparison', label: '月度对比', minW: 4, minH: 3, w: 6, h: 4 },
-  { i: 'efficiency', label: '能耗效率', minW: 4, minH: 3, w: 6, h: 4 },
-  { i: 'driving-habits', label: '驾驶习惯', minW: 4, minH: 3, w: 6, h: 4 },
-  { i: 'charging-analysis', label: '充电分析', minW: 4, minH: 3, w: 6, h: 4 },
-  { i: 'charging-stats', label: '充电统计', minW: 4, minH: 3, w: 6, h: 4 },
-  { i: 'frequent-locations', label: '常用地点', minW: 4, minH: 3, w: 12, h: 4 },
-];
+function Panel({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`panel ${className}`}>
+      {children}
+    </div>
+  );
+}
 
-function loadLayout(): any[] {
-  try {
-    const saved = localStorage.getItem(LAYOUT_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Merge with defaults to ensure new modules get positions
-      const defaultById = Object.fromEntries(DEFAULT_ITEMS.map((d) => [d.i, d]));
-      return parsed.map((l: any) => ({
-        ...defaultById[l.i],
-        ...l,
-      }));
-    }
-  } catch { /* ignore */ }
-  // Generate default layout: stack items vertically
-  let y = 0;
-  return DEFAULT_ITEMS.map((item) => {
-    const layout = { x: 0, y, w: item.w, h: item.h, minW: item.minW, minH: item.minH, i: item.i };
-    y += item.h;
-    return layout;
-  });
+function PanelHead({ icon, title, badge }: { icon: string; title: string; badge?: string }) {
+  return (
+    <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-tm-border/40 min-h-[36px]">
+      <span className="text-[10px] text-tm-cyan/60">{icon}</span>
+      <h3 className="text-[11px] font-semibold tracking-[0.04em] uppercase text-white/35">{title}</h3>
+      {badge && <span className="ml-auto text-[10px] text-white/20 font-mono">{badge}</span>}
+    </div>
+  );
 }
 
 /**
- * Main dashboard page with draggable, reorderable modules.
+ * Main dashboard page with section-based layout (UI redesign v2).
  */
 const Dashboard: React.FC = () => {
   const {
@@ -63,86 +48,22 @@ const Dashboard: React.FC = () => {
     loading, error, lastUpdated, refresh, countdown,
   } = useTeslaMateData();
 
-  const [layout, setLayout] = useState<any[]>(loadLayout);
-  const [locked, setLocked] = useState(() => {
-    try { return localStorage.getItem(LOCK_KEY) === 'true'; }
-    catch { return false; }
-  });
-
-  const toggleLock = useCallback(() => {
-    setLocked(prev => {
-      const next = !prev;
-      localStorage.setItem(LOCK_KEY, next ? 'true' : 'false');
-      return next;
-    });
-  }, []);
-
-  const onLayoutChange = useCallback((newLayout: any[]) => {
-    setLayout([...newLayout]);
-    localStorage.setItem(LAYOUT_KEY, JSON.stringify(newLayout));
-  }, []);
-
-  const resetLayout = useCallback(() => {
-    localStorage.removeItem(LAYOUT_KEY);
-    const fresh = loadLayout();
-    setLayout(fresh);
-  }, []);
-
   const totalDrives = summary?.drives?.drive_count ? parseInt(summary.drives.drive_count, 10) : 0;
   const totalCharges = summary?.charges?.charge_count ? parseInt(summary.charges.charge_count, 10) : 0;
   const totalDistance = Number(summary?.drives?.total_distance ?? 0);
   const avgEff = Number(summary?.drives?.avg_efficiency ?? 0);
 
-  const modules: Record<string, React.ReactNode> = {
-    'vehicle-status': <VehicleStatus car={car} />,
-    'kpi-summary': (
-      <div className="panel h-full">
-        <div className="panel-header"><span className="text-tm-text-dim">◆</span> KPI 概览</div>
-        <div className="panel-body grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div className="px-2 py-1">
-            <span className="data-label">总行程</span>
-            <div className="text-lg font-bold text-tm-orange glow-text-orange mt-0.5">{totalDrives}</div>
-          </div>
-          <div className="px-2 py-1">
-            <span className="data-label">总充电</span>
-            <div className="text-lg font-bold text-tm-green glow-text-green mt-0.5">{totalCharges}</div>
-          </div>
-          <div className="px-2 py-1">
-            <span className="data-label">总里程</span>
-            <div className="text-lg font-bold text-tm-cyan glow-text-cyan mt-0.5">{totalDistance.toFixed(0)} km</div>
-          </div>
-          <div className="px-2 py-1">
-            <span className="data-label">平均效率</span>
-            <div className="text-lg font-bold text-tm-yellow mt-0.5">{avgEff > 0 ? `${avgEff}%` : '---'}</div>
-          </div>
-          <div className="px-2 py-1">
-            <span className="data-label">总能量</span>
-            <div className="text-lg font-bold text-tm-green glow-text-green mt-0.5">
-              {summary?.charges?.total_energy && Number(summary.charges.total_energy) > 0 ? `${Number(summary.charges.total_energy).toFixed(0)} kWh` : '---'}
-            </div>
-          </div>
-          <div className="px-2 py-1">
-            <span className="data-label">最高速度</span>
-            <div className="text-lg font-bold text-tm-red mt-0.5">
-              {summary?.drives?.max_speed && Number(summary.drives.max_speed) > 0 ? `${summary.drives.max_speed} km/h` : '---'}
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
-    'weekly-mileage': <WeeklyMileage weekly={weekly} />,
-    'recent-activity': <RecentActivity drives={drives} charges={charges} />,
-    'mileage-trend': <MileageTrend mileage={mileage} />,
-    'monthly-comparison': <MonthlyComparison monthly={monthly} />,
-    'efficiency': <EfficiencyAnalysis efficiency={efficiency} />,
-    'driving-habits': <DrivingHabits drives={drives} />,
-    'charging-analysis': <ChargingAnalysis charges={charges} />,
-    'charging-stats': <ChargingStats charges={charges} />,
-    'frequent-locations': <FrequentLocations locations={locations} />,
-  };
+  const kpiCards = [
+    { label: '总行程', value: totalDrives.toLocaleString(), sub: '次出行', color: 'text-tm-orange' },
+    { label: '总充电', value: totalCharges.toLocaleString(), sub: '次', color: 'text-tm-green' },
+    { label: '总里程', value: totalDistance > 0 ? `${totalDistance.toLocaleString(undefined, {maximumFractionDigits: 0})}` : '0', sub: 'km 累计行驶', color: 'text-tm-cyan' },
+    { label: '平均效率', value: avgEff > 0 ? `${Number(avgEff).toFixed(1)}` : '—', sub: 'Wh/km', color: avgEff > 0 ? 'text-tm-yellow' : 'text-white/30' },
+    { label: '总能量', value: summary?.charges?.total_energy && Number(summary.charges.total_energy) > 0 ? `${Number(summary.charges.total_energy).toLocaleString(undefined, {maximumFractionDigits: 0})}` : '—', sub: 'kWh', color: summary?.charges?.total_energy && Number(summary.charges.total_energy) > 0 ? 'text-tm-green' : 'text-white/30' },
+    { label: '最高速度', value: summary?.drives?.max_speed && Number(summary.drives.max_speed) > 0 ? `${Number(summary.drives.max_speed)}` : '—', sub: 'km/h', color: summary?.drives?.max_speed && Number(summary.drives.max_speed) > 0 ? 'text-tm-red' : 'text-white/30' },
+  ];
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-tm-bg">
       <div className="scanline-overlay" />
 
       <Header
@@ -155,10 +76,10 @@ const Dashboard: React.FC = () => {
         onRefresh={refresh}
       />
 
-      <main className="flex-1 max-w-[1920px] w-full mx-auto p-4">
+      <main className="flex-1 w-full max-w-[1440px] mx-auto px-6 pb-8 relative z-10">
         {/* Error banner */}
         {error && (
-          <div className="panel border-tm-red/50 bg-tm-red/5 mb-4">
+          <Panel className="border-tm-red/50 bg-tm-red/5 mb-5">
             <div className="px-4 py-3 flex items-center gap-3">
               <span className="status-dot status-offline" />
               <div>
@@ -166,89 +87,77 @@ const Dashboard: React.FC = () => {
                 <p className="text-xs text-tm-text-dim mt-0.5">{error}</p>
               </div>
             </div>
-          </div>
+          </Panel>
         )}
 
-        {/* Controls bar */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={toggleLock}
-              className={`px-3 py-1.5 text-xs rounded-md border transition-all flex items-center gap-1.5 ${
-                locked
-                  ? 'border-tm-green/50 text-tm-green bg-tm-green/10 hover:bg-tm-green/20'
-                  : 'border-tm-orange/50 text-tm-orange bg-tm-orange/10 hover:bg-tm-orange/20'
-              }`}
-            >
-              {locked ? '🔒 已锁定' : '🔓 已解锁'}
-            </button>
-            {!locked && (
-              <span className="text-xs text-tm-text-dim">拖拽模块顶部把手可调整位置</span>
-            )}
-            {locked && (
-              <span className="text-xs text-tm-green/70">布局已固定，不会被误拖动</span>
-            )}
+        {/* == Section: 概览 == */}
+        <SectionHeader label="概览" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-6">
+          {/* 车辆状态 */}
+          <div className="panel">
+            <PanelHead icon="◆" title="车辆状态" />
+            <div className="p-4">
+              <VehicleStatus car={car} />
+            </div>
           </div>
-          <button
-            onClick={resetLayout}
-            className="px-3 py-1.5 text-xs border border-tm-border/50 text-tm-text-dim rounded-md hover:border-tm-orange/50 hover:text-tm-orange transition-all"
-          >
-            ↺ 重置布局
-          </button>
+
+          {/* KPI 概览 */}
+          <div className="panel">
+            <PanelHead icon="◆" title="KPI 概览" />
+            <div className="p-4">
+              <div className="grid grid-cols-3 gap-2">
+                {kpiCards.map((kpi) => (
+                  <div key={kpi.label} className="text-center px-1 py-2.5 rounded-md bg-white/[0.02] border border-tm-border/30">
+                    <div className="text-[9px] uppercase tracking-[0.06em] text-white/25 mb-1">{kpi.label}</div>
+                    <div className={`font-mono text-lg font-semibold leading-tight ${kpi.color}`}>{kpi.value}</div>
+                    <div className="text-[9px] text-white/15 mt-0.5">{kpi.sub}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 本周里程 */}
+          <WeeklyMileage weekly={weekly} />
         </div>
 
-        {/* Draggable grid */}
-        <ResponsiveGridLayout
-          key={locked ? 'locked' : 'unlocked'}
-          className="layout"
-          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480 }}
-          cols={{ lg: 12, md: 12, sm: 6, xs: 4 }}
-          rowHeight={100}
-          width={1200}
-          autoSize={true}
-          layouts={{ lg: layout, md: layout, sm: layout, xs: layout }}
-          onLayoutChange={(layout: any) => {
-            if (locked) return;
-            const arr = Array.isArray(layout) ? layout : [];
-            setLayout(arr);
-            localStorage.setItem(LAYOUT_KEY, JSON.stringify(arr));
-          }}
-          dragConfig={locked ? { enabled: false } : { handle: '.drag-handle' }}
-          resizeConfig={{ enabled: false }}
-          margin={[16, 16]}
-          containerPadding={[0, 0]}
-        >
-          {layout.map((item: any) => (
-            <div key={item.i} className="relative overflow-visible">
-              {/* Drag handle bar - hidden when locked */}
-              {!locked && (
-                <div className="drag-handle absolute -top-1 left-0 right-0 h-7 z-20 cursor-grab active:cursor-grabbing flex items-center px-1 opacity-0 hover:opacity-100 transition-opacity">
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-tm-panel/80 border border-tm-cyan/30 backdrop-blur-sm">
-                    <div className="flex gap-0.5">
-                      <span className="w-1 h-1 rounded-full bg-tm-cyan/60" />
-                      <span className="w-1 h-1 rounded-full bg-tm-cyan/40" />
-                      <span className="w-1 h-1 rounded-full bg-tm-cyan/20" />
-                    </div>
-                    <span className="text-[9px] text-tm-cyan/60 font-mono">{DEFAULT_ITEMS.find(d => d.i === item.i)?.label || item.i}</span>
-                  </div>
-                </div>
-              )}
-              {modules[item.i]}
-            </div>
-          ))}
-        </ResponsiveGridLayout>
+        {/* == Section: 动态 == */}
+        <SectionHeader label="动态" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
+          <RecentActivity drives={drives} charges={charges} />
+          <MileageTrend mileage={mileage} />
+        </div>
+
+        {/* == Section: 分析 == */}
+        <SectionHeader label="分析" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
+          <MonthlyComparison monthly={monthly} />
+          <EfficiencyAnalysis efficiency={efficiency} />
+        </div>
+
+        {/* == Section: 数据透视 == */}
+        <SectionHeader label="数据透视" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <DrivingHabits drives={drives} />
+          <ChargingAnalysis charges={charges} />
+          <ChargingStats charges={charges} />
+          <FrequentLocations locations={locations} />
+        </div>
 
         {/* Footer */}
-        <footer className="border-t border-tm-border/30 pt-3 pb-4 mt-4 flex items-center justify-between text-xs text-tm-text-dim">
-          <div className="flex items-center gap-4">
+        <footer className="flex items-center justify-between pt-4 mt-8 border-t border-tm-border/40 text-[11px] text-white/15">
+          <div className="flex items-center gap-3">
             <span>TeslaMate 控制中心 v2.0</span>
-            <span className="text-tm-border">|</span>
-            <span>{locked ? '布局已锁定' : '可拖动布局'}</span>
+            <span className="opacity-30">|</span>
+            <span>分区布局</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <span>刷新间隔: 30s</span>
-            <span className="text-tm-border">|</span>
-            <span className="text-tm-green">系统正常</span>
+            <span className="opacity-30">|</span>
+            <span className="flex items-center gap-1">
+              <span className="w-1 h-1 rounded-full bg-tm-green inline-block shadow-[0_0_4px_rgba(0,255,65,0.3)]" />
+              系统正常
+            </span>
           </div>
         </footer>
       </main>

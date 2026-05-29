@@ -51,9 +51,9 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ drives, charges }) => {
     <div className="panel h-full flex flex-col">
       <div className="panel-header">
         <span className="text-tm-yellow">◆</span> 最近活动
-        <span className="ml-auto text-xs text-tm-text-dim">{items.length} 条事件</span>
+        <span className="ml-auto text-sm text-tm-text-dim">{items.length} 条事件</span>
       </div>
-      <div className="panel-body flex-1 overflow-y-auto" style={{ maxHeight: '320px' }}>
+      <div className="panel-body flex-1 overflow-y-auto" style={{ maxHeight: '380px' }}>
         {items.length === 0 ? (
           <div className="flex items-center justify-center h-full min-h-[120px]">
             <span className="text-tm-text-dim text-sm">暂无活动记录</span>
@@ -70,13 +70,13 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ drives, charges }) => {
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className={`text-xs font-bold ${item.color} truncate`}>
+                    <span className={`text-sm font-bold ${item.color} truncate`}>
                       {item.type === 'drive' ? '◉' : '⚡'} {item.title}
                     </span>
-                    <span className="text-xs text-tm-text-dim shrink-0 ml-2">{formatDate(item.date)}</span>
+                    <span className="text-sm text-tm-text-dim shrink-0 ml-2">{formatDate(item.date)}</span>
                   </div>
-                  <div className="text-xs text-tm-text-dim mt-0.5">{item.subtitle}</div>
-                  <div className="text-xs text-tm-text mt-0.5">{item.metric}</div>
+                  <div className="text-sm text-tm-text-dim mt-0.5">{item.subtitle}</div>
+                  <div className="text-sm text-tm-text mt-0.5">{item.metric}</div>
                 </div>
               </div>
             ))}
