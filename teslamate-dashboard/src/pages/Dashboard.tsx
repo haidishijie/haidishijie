@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React from 'react';
 import { useTeslaMateData } from '../hooks/useTeslaMateData';
 import Header from '../components/Header';
 import VehicleStatus from '../components/VehicleStatus';
@@ -54,23 +54,8 @@ const Dashboard: React.FC = () => {
   ];
 
   // Proportional scaling based on viewport width (reference: 1920px)
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
-  useEffect(() => {
-    const updateScale = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      const scaleX = w / 1920;
-      const scaleY = h / 1080;
-      setScale(Math.min(scaleX, scaleY, 1.5));
-    };
-    updateScale();
-    window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
-  }, []);
-
   return (
-    <div className="min-h-screen flex flex-col bg-tm-bg">
+    <div className="h-screen flex flex-col bg-tm-bg">
       <div className="scanline-overlay" />
 
       <Header
@@ -83,18 +68,7 @@ const Dashboard: React.FC = () => {
         onRefresh={refresh}
       />
 
-      <main className="flex-1 w-full relative z-10 overflow-hidden flex items-center justify-center">
-        <div
-          ref={contentRef}
-          style={{
-            transform: `scale(${scale})`,
-            transformOrigin: 'center center',
-            width: '1920px',
-            height: '1080px',
-            overflow: 'hidden',
-          }}
-          className="flex flex-col px-4 pb-3"
-        >
+      <main className="flex-1 w-full overflow-hidden px-4 pb-3 relative z-10 flex flex-col">
         {/* Error banner */}
         {error && (
           <div className="px-3 py-2 mb-2 flex items-center gap-3 border border-tm-red/50 bg-tm-red/5 rounded text-xs text-tm-red">
@@ -153,7 +127,6 @@ const Dashboard: React.FC = () => {
           <span>TeslaMate 控制中心 v2.0 | 横版全览</span>
           <span>刷新间隔: 30s | <span className="text-tm-green">●</span> 系统正常</span>
         </div>
-      </div>
       </main>
     </div>
   );
