@@ -42,11 +42,23 @@ const VehicleStatus: React.FC<VehicleStatusProps> = ({ car }) => {
     const lon = Number(car.longitude);
     setAddress(null);
     setGeoLoading(true);
-    fetch(`/api/geocode?lat=${lat}&lon=${lon}`)
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=18&accept-language=zh`, {
+      headers: { 'User-Agent': 'TeslaMateDashboard/2.0' }
+    })
       .then(r => r.json())
       .then(data => {
-        if (data?.display_name) {
-          // Shorten: take first 2-3 parts
+        if (data?.address) {
+          const a = data.address;
+          // Build short address: road + house_number, then suburb/city
+          const parts: string[] = [];
+          if (a.road) {
+            const road = a.road + (a.house_number ? ` ${a.house_number}` : '');
+            parts.push(road);
+          }
+          if (a.suburb && !a.road?.includes(a.suburb)) parts.push(a.suburb);
+          if (a.city && !parts.some(p => p.includes(a.city))) parts.push(a.city);
+          setAddress(parts.length > 0 ? parts.join(', ') : (data.name || null));
+        } else if (data?.display_name) {
           const parts = data.display_name.split(', ');
           setAddress(parts.slice(0, Math.min(3, parts.length)).join(', '));
         } else {

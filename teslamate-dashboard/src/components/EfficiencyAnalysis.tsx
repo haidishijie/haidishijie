@@ -52,7 +52,7 @@ const EfficiencyAnalysis: React.FC<EfficiencyAnalysisProps> = ({ efficiency }) =
     labels,
     datasets: [
       {
-        label: 'Wh/km',
+        label: '消耗比',
         data: whPerKm,
         borderColor: '#00d4ff',
         backgroundColor: 'rgba(0, 212, 255, 0.08)',
@@ -114,7 +114,7 @@ const EfficiencyAnalysis: React.FC<EfficiencyAnalysisProps> = ({ efficiency }) =
       x: { ticks: { color: '#6b7fa3', font: { family: 'JetBrains Mono', size: 9 }, maxRotation: 30 }, grid: { color: 'rgba(30,58,95,0.3)' }, border: { color: '#1e3a5f' } },
       y: {
         position: 'left' as const,
-        title: { display: true, text: 'Wh/km', color: '#00d4ff', font: { family: 'JetBrains Mono', size: 10 } },
+        title: { display: true, text: '消耗比', color: '#00d4ff', font: { family: 'JetBrains Mono', size: 10 } },
         ticks: { color: '#00d4ff', font: { family: 'JetBrains Mono', size: 9 } },
         grid: { color: 'rgba(30,58,95,0.15)' },
         border: { color: '#1e3a5f' },
@@ -144,16 +144,16 @@ const EfficiencyAnalysis: React.FC<EfficiencyAnalysisProps> = ({ efficiency }) =
       <div className="flex-1 flex flex-col gap-1 overflow-hidden p-2">
         <div className="grid grid-cols-4 gap-1 text-center">
           <div>
-            <span className="text-[9px] text-white/25 uppercase tracking-wider">平均能耗</span>
+            <span className="text-[9px] text-white/25 uppercase tracking-wider">平均消耗</span>
             <div className="text-xs font-bold text-tm-cyan mt-0.5">{avgWh != null ? `${avgWh}` : '---'}</div>
           </div>
           <div>
             <span className="text-[9px] text-white/25 uppercase tracking-wider">最佳</span>
-            <div className="text-xs font-bold text-tm-green mt-0.5">{best > 0 ? `${best} Wh/km` : '---'}</div>
+            <div className="text-xs font-bold text-tm-green mt-0.5">{best > 0 ? `${best}` : '---'}</div>
           </div>
           <div>
             <span className="text-[9px] text-white/25 uppercase tracking-wider">最差</span>
-            <div className="text-xs font-bold text-tm-red mt-0.5">{worst > 0 ? `${worst} Wh/km` : '---'}</div>
+            <div className="text-xs font-bold text-tm-red mt-0.5">{worst > 0 ? `${worst}` : '---'}</div>
           </div>
           <div>
             <span className="text-[9px] text-white/25 uppercase tracking-wider">数据</span>

@@ -9,12 +9,11 @@ import paramiko, base64, time, os, sys
 DIST = 'C:/Users/user/WorkBuddy/2026-05-22-13-57-30/teslamate-dashboard/dist'
 DEPLOY = '/tmp/zfsv3/sata11/13331888081/data/teslamate-dashboard'
 
-# Files to deploy (update hash after each build)
+# Files to deploy (auto-detected)
 ASSETS_JS = ''
 ASSETS_CSS = ''
 
 def get_assets():
-    """Auto-detect latest build files."""
     for f in os.listdir(os.path.join(DIST, 'assets')):
         if f.startswith('index-') and f.endswith('.js'):
             globals()['ASSETS_JS'] = f
@@ -28,6 +27,11 @@ print(f'Deploying: {files}')
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 ssh.connect('192.168.28.15', port=10000, username='13331888081', password='loveZyw520', timeout=10)
+
+def ssh_out(cmd, timeout=10):
+    """Run command, return stdout string."""
+    _, stdout, _ = ssh.exec_command(cmd, timeout=timeout)
+    return stdout.read().decode().strip()
 
 ok = True
 for rel_path in files:
@@ -54,8 +58,7 @@ for rel_path in files:
         time.sleep(0.5)
     
     # Verify chunk count
-    stdin, _, _ = ssh.exec_command('echo "loveZyw520" | sudo -S ls /tmp/dp_c/ | wc -l', timeout=10)
-    cnt = int(stdin.read().decode().strip() or 0)
+    cnt = int(ssh_out('echo "loveZyw520" | sudo -S ls /tmp/dp_c/ | wc -l') or 0)
     expected = (len(b64) + 4999) // 5000
     if cnt != expected:
         print(f'  ⚠️ Chunk count mismatch: {cnt}/{expected}, retrying...')
@@ -66,16 +69,12 @@ for rel_path in files:
     ssh.exec_command('echo "loveZyw520" | sudo -S bash -c "cat /tmp/dp_c/p* > /tmp/rb64.bin && rm -rf /tmp/dp_c"', timeout=15)
     time.sleep(2)
     
-    # Check concat size
-    stdin, _, _ = ssh.exec_command('echo "loveZyw520" | sudo -S wc -c /tmp/rb64.bin', timeout=10)
-    actual_b64 = stdin.read().decode().strip().split()[0] if stdin.readable() else '0'
-    # Simple check using exec_command
+    # Decode and write
     ssh.exec_command(f'echo "loveZyw520" | sudo -S bash -c "base64 -d /tmp/rb64.bin > {remote_path} && chmod 644 {remote_path}"', timeout=30)
     time.sleep(2)
     
     # Verify file
-    stdin, _, _ = ssh.exec_command(f'echo "loveZyw520" | sudo -S wc -c {remote_path}', timeout=10)
-    result = stdin.read().decode().strip()
+    result = ssh_out(f'echo "loveZyw520" | sudo -S wc -c {remote_path}')
     print(f'  -> {result}')
 
 # Clean old JS files
@@ -85,16 +84,13 @@ if ASSETS_CSS:
     ssh.exec_command(f'echo "loveZyw520" | sudo -S find {DEPLOY}/dist/assets -name "index-*.css" -not -name "{ASSETS_CSS}" -not -name "index.css" -delete', timeout=10)
 
 if ok:
-    # Restart
     print('Restarting server...')
     ssh.exec_command('echo "loveZyw520" | sudo -S pkill -f "node.*prod"', timeout=10)
     time.sleep(2)
     ssh.exec_command(f'echo "loveZyw520" | sudo -S bash {DEPLOY}/start.sh', timeout=5)
     time.sleep(6)
     
-    # Test
-    stdin, _, _ = ssh.exec_command('echo "loveZyw520" | sudo -S curl -s -o /dev/null -w "%{http_code}" http://localhost:9090/', timeout=10)
-    http = stdin.read().decode().strip()
+    http = ssh_out('echo "loveZyw520" | sudo -S curl -s -o /dev/null -w "%{http_code}" http://localhost:9090/')
     print(f'Dashboard: HTTP {http}')
 else:
     print('⚠️ Upload had issues, server NOT restarted.')

@@ -18,13 +18,21 @@ const StatItem: React.FC<{ label: string; value: string; color: string }> = ({ l
  */
 const ChargingAnalysis: React.FC<ChargingAnalysisProps> = ({ charges }) => {
   const [expanded, setExpanded] = useState(false);
-  const totalCount = charges.length;
-  const totalEnergy = charges.reduce((s, c) => s + (c.charge_energy_added ?? 0), 0);
+  // Only count charges with valid data (ignore incomplete records)
+  const validCharges = charges.filter(c => c.charge_energy_added != null && c.charge_energy_added > 0);
+  const totalCount = validCharges.length;
+  const totalEnergy = validCharges.reduce((s, c) => s + (c.charge_energy_added ?? 0), 0);
   const avgPerSession = totalCount > 0 ? totalEnergy / totalCount : 0;
-  const avgDuration = totalCount > 0 ? charges.reduce((s, c) => s + (c.duration_min ?? 0), 0) / totalCount : 0;
-  const totalCost = charges.reduce((s, c) => s + (c.cost ?? 0), 0);
-  const avgSocStart = totalCount > 0 ? charges.reduce((s, c) => s + (c.start_battery_level ?? 0), 0) / totalCount : 0;
-  const avgSocEnd = totalCount > 0 ? charges.reduce((s, c) => s + (c.end_battery_level ?? 0), 0) / totalCount : 0;
+  const avgDuration = totalCount > 0 ? validCharges.reduce((s, c) => s + (c.duration_min ?? 0), 0) / totalCount : 0;
+  const totalCost = validCharges.reduce((s, c) => {
+    const energy = c.charge_energy_added ?? 0;
+    const rate = c.is_dc ? 1.3 : 0.35;
+    return s + energy * rate;
+  }, 0);
+  const avgSocStart = totalCount > 0 ? validCharges.reduce((s, c) => s + (c.start_battery_level ?? 0), 0) / totalCount : 0;
+  const avgSocEnd = totalCount > 0 ? validCharges.reduce((s, c) => s + (c.end_battery_level ?? 0), 0) / totalCount : 0;
+  const dcCount = validCharges.filter(c => c.is_dc).length;
+  const acCount = totalCount - dcCount;
   const chargesSorted = [...charges].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
@@ -59,8 +67,8 @@ const ChargingAnalysis: React.FC<ChargingAnalysisProps> = ({ charges }) => {
               <div>
                 <span className="data-label">充电分布</span>
                 <div className="mt-2 space-y-1.5">
-                  <MiniBar label="快充 DC" value={0} total={totalCount} color="bg-tm-green" />
-                  <MiniBar label="慢充 AC" value={totalCount} total={totalCount} color="bg-tm-cyan" />
+                  <MiniBar label="快充 DC" value={dcCount} total={totalCount} color="bg-tm-green" />
+                  <MiniBar label="慢充 AC" value={acCount} total={totalCount} color="bg-tm-cyan" />
                 </div>
               </div>
             </div>

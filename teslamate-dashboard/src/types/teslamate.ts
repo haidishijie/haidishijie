@@ -101,4 +101,5 @@ export interface Charge {
   outside_temp_avg: number | null;
   car_id: number;
   cost: number | null;
+  is_dc: boolean;
 }
