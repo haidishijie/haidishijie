@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import type { Car } from '../types/teslamate';
 import { formatOdometer, formatKm, formatTemp, getBatteryBarColor } from '../utils/formatters';
 
@@ -32,9 +32,33 @@ const VehicleStatus: React.FC<VehicleStatusProps> = ({ car }) => {
   const speedDisplay = isParked ? '已驻车' : `${Math.round(Number(car.speed))} km/h`;
   const speedColor = isParked ? 'text-tm-text-dim' : 'text-tm-text';
 
-  // Location
+  // Location with reverse geocoding
+  const [address, setAddress] = useState<string | null>(null);
+  const [geoLoading, setGeoLoading] = useState(false);
+  useEffect(() => {
+    if (!car?.latitude || !car?.longitude) return;
+    // Only geocode if lat/lon changed significantly (~50m)
+    const lat = Number(car.latitude);
+    const lon = Number(car.longitude);
+    setAddress(null);
+    setGeoLoading(true);
+    fetch(`/api/geocode?lat=${lat}&lon=${lon}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data?.display_name) {
+          // Shorten: take first 2-3 parts
+          const parts = data.display_name.split(', ');
+          setAddress(parts.slice(0, Math.min(3, parts.length)).join(', '));
+        } else {
+          setAddress(null);
+        }
+      })
+      .catch(() => setAddress(null))
+      .finally(() => setGeoLoading(false));
+  }, [car?.latitude, car?.longitude]);
+
   const loc = car.latitude != null && car.longitude != null
-    ? `${Number(car.latitude).toFixed(4)}, ${Number(car.longitude).toFixed(4)}`
+    ? (address || (geoLoading ? '加载中...' : `${Number(car.latitude).toFixed(4)}, ${Number(car.longitude).toFixed(4)}`))
     : '---';
 
   const rows = [
