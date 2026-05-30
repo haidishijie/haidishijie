@@ -16,21 +16,40 @@ const VehicleStatus: React.FC<VehicleStatusProps> = ({ car }) => {
     );
   }
 
+  // Tire pressure
+  const tpmsVals = [car.tpms_pressure_fl, car.tpms_pressure_fr, car.tpms_pressure_rl, car.tpms_pressure_rr]
+    .filter((v): v is number => v != null);
+  const tpmsStr = tpmsVals.length === 4
+    ? `${Math.min(...tpmsVals).toFixed(1)}-${Math.max(...tpmsVals).toFixed(1)} bar`
+    : '---';
+
+  // Charging status
+  const isCharging = car.power != null && car.power > 0;
+  const chargeStatus = isCharging ? `充电中 +${Math.round(Number(car.power))} kW` : '已停止';
+
+  // Speed / parked
+  const isParked = car.speed == null || Number(car.speed) === 0;
+  const speedDisplay = isParked ? '已驻车' : `${Math.round(Number(car.speed))} km/h`;
+  const speedColor = isParked ? 'text-tm-text-dim' : 'text-tm-text';
+
+  // Location
+  const loc = car.latitude != null && car.longitude != null
+    ? `${Number(car.latitude).toFixed(4)}, ${Number(car.longitude).toFixed(4)}`
+    : '---';
+
   const rows = [
     { label: '🔋 电量', value: `${car.battery_level ?? '--'}%`, color: 'text-tm-cyan glow-text-cyan' },
+    { label: '↗ 速度/状态', value: speedDisplay, color: speedColor },
+    { label: '📌 当前位置', value: loc, color: 'text-tm-text-dim' },
     { label: '◉ 里程表', value: formatOdometer(car.odometer), color: 'text-tm-cyan glow-text-cyan' },
-    { label: '◎ 额定续航', value: formatKm(car.rated_battery_range_km), color: 'text-tm-green glow-text-green' },
-    { label: '◎ 预估续航', value: formatKm(car.est_battery_range_km), color: 'text-tm-green glow-text-green' },
-    { label: '🌡 室外温度', value: formatTemp(car.outside_temp), color: 'text-tm-orange glow-text-orange' },
-    { label: '⬡ 车内温度', value: formatTemp(car.inside_temp), color: 'text-tm-orange glow-text-orange' },
-    { label: '↗ 速度', value: car.speed != null ? `${Math.round(Number(car.speed))} km/h` : '---', color: 'text-tm-text' },
-    { label: '⚡ 功率', value: car.power != null ? `${Number(car.power) > 0 ? '+' : ''}${Math.round(Number(car.power))} kW` : '---',
-      color: car.power != null && Number(car.power) > 0 ? 'text-tm-green glow-text-green' : car.power != null && Number(car.power) < 0 ? 'text-tm-orange glow-text-orange' : 'text-tm-text-dim' },
+    { label: '◎ 续航', value: formatKm(car.rated_battery_range_km), color: 'text-tm-green glow-text-green' },
+    { label: '🌡 室外', value: formatTemp(car.outside_temp), color: 'text-tm-orange glow-text-orange' },
+    { label: '⬡ 车内', value: formatTemp(car.inside_temp), color: 'text-tm-orange glow-text-orange' },
+    { label: '⚡ 充电', value: chargeStatus, color: isCharging ? 'text-tm-green glow-text-green' : 'text-tm-text-dim' },
   ];
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Two-column data grid */}
       <div className="grid grid-cols-2 gap-x-4 gap-y-0">
         {rows.map((r) => (
           <div key={r.label} className="flex flex-col py-2 border-b border-tm-border/20">
